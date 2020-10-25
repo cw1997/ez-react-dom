@@ -113,9 +113,7 @@ export default class ReactDOM {
       //    process tag 'for'
     } else if (/^on[A-Z][A-Za-z]+$/.test(key)) {
       const htmlEventName = key.toLowerCase();
-      // element.addEventListener(htmlEventName, attribute);
-      element.setAttribute(htmlEventName, attribute);
-      // element[htmlEventName] = attribute;
+      element[htmlEventName] = attribute;
       //    otherwise
     } else {
       element.setAttribute(key, attribute);
