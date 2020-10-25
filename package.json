@@ -4,7 +4,7 @@
   "description": "A simple implementation of react-dom",
   "main": "src/index.ts",
   "scripts": {
-    "import": "npm link ez-react",
+    "postinstall": "npm link ez-react",
     "start": "webpack --watch",
     "test": "jest",
     "build": "webpack",
