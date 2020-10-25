@@ -1,11 +1,19 @@
 import React from 'ez-react'
 import ReactDOM from './index'
 
-const testReactDom = (jsx, expectedInnerHtml) => {
+type eventHandlers = {name: string, func?: (...any: any) => any}[]
+
+const testReactDom = (jsx, expectedInnerHtml, eventHandlers?: eventHandlers) => {
   const container = document.createElement('div');
   ReactDOM.render(jsx, container);
   const {innerHTML} = container;
   expect(innerHTML).toBe(expectedInnerHtml);
+  const innerDiv = container.querySelector<HTMLDivElement>('#my-div');
+  if (eventHandlers && eventHandlers.length > 0) {
+    eventHandlers.forEach((eventHandler, eventHandlersIndex) => {
+      expect(innerDiv[eventHandler.name]).not.toBeNull();
+    })
+  }
 };
 
 describe('test ez-react-dom', () => {
@@ -91,6 +99,7 @@ describe('test ez-react-dom', () => {
     };
     const ComplicatedJsxWithFunctionComponentAndEventHandler = (props: { name: string }) => (
       <div
+        id="my-div"
         style={{backgroundColor: 'lightblue'}}
         onClick={() => alert('hello world')}
         onMouseEnter={(event) => MouseMoveEventHandler(event, 'enter')}
@@ -99,14 +108,12 @@ describe('test ez-react-dom', () => {
         hello <FunctionComponentWithProperties name={name}/>!
       </div>
     );
-    const expectedInnerHtml = '<div style="background-color: lightblue;" onclick="function onClick() {\n' +
-      '          return alert(\'hello world\');\n' +
-      '        }" onmouseenter="function onMouseEnter(event) {\n' +
-      '          return MouseMoveEventHandler(event, \'enter\');\n' +
-      '        }" onmouseout="function onMouseOut(event) {\n' +
-      '          return MouseMoveEventHandler(event, \'out\');\n' +
-      '        }">hello <span id="name"></span>!</div>';
-    testReactDom(<ComplicatedJsxWithFunctionComponentAndEventHandler name={'cw1997'} />, expectedInnerHtml);
+    const expectedInnerHtml = '<div id="my-div" style="background-color: lightblue;">hello <span id="name"></span>!</div>';
+    testReactDom(<ComplicatedJsxWithFunctionComponentAndEventHandler name={'cw1997'} />, expectedInnerHtml, [
+      {name: 'onClick'},
+      {name: 'onMouseEnter'},
+      {name: 'onMouseOut'},
+    ]);
   });
 
   test('ComplicatedJsxWithFunctionComponentAndSpecialProperties', () => {
