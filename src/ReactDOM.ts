@@ -53,12 +53,10 @@ export default class ReactDOM {
       });
     }
     if (children) {
-      // element.innerHTML = children.reduce((total, val) => total += val);
       children.forEach((child) => {
         this._render(child, element)
       });
     }
-    // console.log('createElement', element);
     return container.appendChild(element);
   }
 
@@ -87,7 +85,6 @@ export default class ReactDOM {
       element.setAttribute('tabindex', attribute);
       //    process event name, convert onClick to onclick
     } else if (key === 'style') {
-      console.log('style', typeof attribute, attribute);
       switch (typeof attribute) {
         case 'string': {
           // element.setAttribute('style', attribute);
@@ -101,7 +98,6 @@ export default class ReactDOM {
           Object.keys(attribute).forEach((styleName) => {
             const rawStyleValue = attribute[styleName];
             const styleValue = typeof rawStyleValue === 'number' ? `${rawStyleValue}px` : rawStyleValue;
-            console.log('set style', styleName, styleValue);
             element.style[styleName] = styleValue;
           });
           break;
