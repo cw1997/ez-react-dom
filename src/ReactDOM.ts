@@ -1,50 +1,50 @@
 import {VirtualDOM} from "ez-react";
+import {create, setProps} from "../../ez-react/src/Component";
 
 export default class ReactDOM {
-  public static render(vDom: VirtualDOM | string | number | boolean, container: HTMLElement) {
-    // console.log(vDom);
+  public static render(vDom: VirtualDOM | string | number | boolean, container: HTMLElement, clearBeforeRender: boolean = true) {
+    // console.log('virtualDOM', vDom);
     //  if you want to erase container when call ReactDOM.render, please uncomment the next line.
-    container.innerHTML = '';
-    const recordRenderSpendTimeKey = 'ez-ReactDOM._render spend time: ';
+    if (clearBeforeRender) {
+      container.innerHTML = '';
+    }
+    const recordRenderSpendTimeKey = `${vDom} _render spent time: `;
     console.time(recordRenderSpendTimeKey);
-    this._render(vDom, container);
+    const realDOM = this._render(vDom);
     console.timeEnd(recordRenderSpendTimeKey);
+    if (realDOM) container.appendChild(realDOM);
   }
 
-  private static _render(vDom: VirtualDOM | string | number | boolean, container: HTMLElement) {
-    // console.count('call ez-ReactDOM._render count: ');
+  public static _render(vDom: VirtualDOM | string | number | boolean): HTMLElement | Text {
+    // console.count('call _render count: ');
     switch (typeof vDom) {
-      case "string":
-      case "number":
-      case "boolean": {
-        // console.debug('start: ', '_renderText');
-        return this._renderText(vDom, container);
+      case 'string':
+      case 'number':
+      case 'boolean': {
+        return this._renderText(vDom);
       }
       case 'object':
       default: {
         const {tagName, attributes, children} = vDom;
         switch (typeof tagName) {
-          case 'function':
-          case 'object': {
-            // console.debug('start: ', '_renderComponent');
-            return this._renderComponent(vDom, container);
+          case 'string': {
+            return this._renderHtmlTag(vDom);
           }
-          case 'string':
+          case 'function':
+          case 'object':
           default: {
-            // console.debug('start: ', '_renderHtmlTag');
-            return this._renderHtmlTag(vDom, container);
+            return this._renderComponent(vDom);
           }
         }
       }
     }
   }
 
-  private static _renderText(vDom: string | number | boolean, container: HTMLElement) {
-    const element = document.createTextNode(String(vDom));
-    return container.appendChild(element);
+  private static _renderText(vDom: string | number | boolean): Text {
+    return document.createTextNode(String(vDom));
   }
 
-  private static _renderHtmlTag(vDom: VirtualDOM, container: HTMLElement) {
+  private static _renderHtmlTag(vDom: VirtualDOM) {
     const {tagName, attributes, children} = vDom;
     const element = document.createElement(tagName as string);
     if (attributes) {
@@ -54,18 +54,28 @@ export default class ReactDOM {
     }
     if (children) {
       children.forEach((child) => {
-        this._render(child, element)
+        if (Array.isArray(child)) {
+          child.forEach((subChild) => {
+            this.render(subChild, element, false);
+          });
+        } else {
+          this.render(child, element, false);
+        }
       });
     }
-    return container.appendChild(element);
+    return element;
   }
 
-  private static _renderComponent(vDom: VirtualDOM, container: HTMLElement) {
+  private static _renderComponent(vDom: VirtualDOM): HTMLElement| Text {
     const {tagName, attributes, children} = vDom;
     if (typeof tagName === "function") {
-      const attributesWithChildren = {...attributes, children};
-      const component = tagName(attributesWithChildren);
-      return container.appendChild(this._render(component, container));
+      const properties = {...attributes, children};
+      const componentInstance = create(tagName, properties);
+      setProps(componentInstance, properties);
+      const componentRenderVirtualDOM = componentInstance.render();
+      const node = this._render(componentRenderVirtualDOM);
+      componentInstance.node = node;
+      return node;
     }
   }
 
@@ -78,12 +88,12 @@ export default class ReactDOM {
       element.setAttribute('class', attribute);
       //    process style, for example: style={{width: 200, height: 300}}, should convert 200 to '200px'
       //    and set element.style
+      //    process tag 'for'
     } else if (key === 'htmlFor') {
       element.setAttribute('for', attribute);
       //    process tag 'tabindex'
     } else if (key === 'tabIndex') {
       element.setAttribute('tabindex', attribute);
-      //    process event name, convert onClick to onclick
     } else if (key === 'style') {
       switch (typeof attribute) {
         case 'string': {
@@ -97,8 +107,7 @@ export default class ReactDOM {
         case 'object': {
           Object.keys(attribute).forEach((styleName) => {
             const rawStyleValue = attribute[styleName];
-            const styleValue = typeof rawStyleValue === 'number' ? `${rawStyleValue}px` : rawStyleValue;
-            element.style[styleName] = styleValue;
+            element.style[styleName] = typeof rawStyleValue === 'number' ? `${rawStyleValue}px` : rawStyleValue;
           });
           break;
         }
@@ -106,7 +115,7 @@ export default class ReactDOM {
           break;
         }
       }
-      //    process tag 'for'
+      //    process event name, convert onClick to onclick
     } else if (/^on[A-Z][A-Za-z]+$/.test(key)) {
       const htmlEventName = key.toLowerCase();
       element[htmlEventName] = attribute;
