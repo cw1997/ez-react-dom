@@ -52,17 +52,15 @@ export default class ReactDOM {
         this._setDomAttribute(element, attributes[key], key);
       });
     }
-    if (children) {
-      children.forEach((child) => {
-        if (Array.isArray(child)) {
-          child.forEach((subChild) => {
-            this.render(subChild, element, false);
-          });
-        } else {
-          this.render(child, element, false);
-        }
-      });
-    }
+    children?.forEach((child) => {
+      if (Array.isArray(child)) {
+        child.forEach((subChild) => {
+          this.render(subChild, element, false);
+        });
+      } else {
+        this.render(child, element, false);
+      }
+    });
     return element;
   }
 
