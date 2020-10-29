@@ -66,15 +66,13 @@ export default class ReactDOM {
 
   private static _renderComponent(vDom: VirtualDOM): HTMLElement| Text {
     const {tagName, attributes, children} = vDom;
-    if (typeof tagName === "function") {
-      const properties = {...attributes, children};
-      const componentInstance = create(tagName, properties);
-      setProps(componentInstance, properties);
-      const componentRenderVirtualDOM = componentInstance.render();
-      const node = this._render(componentRenderVirtualDOM);
-      componentInstance.node = node;
-      return node;
-    }
+    const properties = {...attributes, children};
+    const componentInstance = create(tagName as Function, properties);
+    setProps(componentInstance, properties);
+    const componentRenderVirtualDOM = componentInstance.render();
+    const node = this._render(componentRenderVirtualDOM);
+    componentInstance.node = node;
+    return node;
   }
 
   private static _setDomAttribute(element: HTMLElement, attribute: any, key: string) {
