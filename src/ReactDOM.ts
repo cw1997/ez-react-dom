@@ -1,8 +1,11 @@
-import {VirtualDOM} from "ez-react";
-import {create, setProps} from "../../ez-react/src/Component";
+import {
+  VirtualDOM, VirtualNode, VirtualTextNode,
+  ReactElement, ReactHTMLElement, ReactTextElement, ReactComponentElement,
+  create, setProps
+} from "ez-react";
 
 export default class ReactDOM {
-  public static render(vDom: VirtualDOM | string | number | boolean, container: HTMLElement, clearBeforeRender: boolean = true) {
+  public static render(vDom: VirtualNode, container: HTMLElement, clearBeforeRender: boolean = true) {
     // console.log('virtualDOM', vDom);
     //  if you want to erase container when call ReactDOM.render, please uncomment the next line.
     if (clearBeforeRender) {
@@ -10,12 +13,13 @@ export default class ReactDOM {
     }
     const recordRenderSpendTimeKey = `${vDom} _render spent time: `;
     console.time(recordRenderSpendTimeKey);
-    const realDOM = this._render(vDom);
+    // const realDOM = this._directRender(vDom);
+    const realDOM = this._diffRender(vDom);
     console.timeEnd(recordRenderSpendTimeKey);
     if (realDOM) container.appendChild(realDOM);
   }
 
-  public static _render(vDom: VirtualDOM | string | number | boolean): HTMLElement | Text {
+  public static _directRender(vDom: VirtualNode): ReactElement {
     // console.count('call _render count: ');
     switch (typeof vDom) {
       case 'string':
@@ -40,11 +44,11 @@ export default class ReactDOM {
     }
   }
 
-  private static _renderText(vDom: string | number | boolean): Text {
+  private static _renderText(vDom: VirtualTextNode): ReactTextElement {
     return document.createTextNode(String(vDom));
   }
 
-  private static _renderHtmlTag(vDom: VirtualDOM) {
+  private static _renderHtmlTag(vDom: VirtualDOM): ReactHTMLElement {
     const {tagName, attributes, children} = vDom;
     const element = document.createElement(tagName as string);
     if (attributes) {
@@ -64,18 +68,19 @@ export default class ReactDOM {
     return element;
   }
 
-  private static _renderComponent(vDom: VirtualDOM): HTMLElement| Text {
+  private static _renderComponent(vDom: VirtualDOM): ReactComponentElement<any, any> {
     const {tagName, attributes, children} = vDom;
     const properties = {...attributes, children};
     const componentInstance = create(tagName as Function, properties);
     setProps(componentInstance, properties);
     const componentRenderVirtualDOM = componentInstance.render();
-    const node = this._render(componentRenderVirtualDOM);
+    const node = this._directRender(componentRenderVirtualDOM);
     componentInstance.node = node;
     return node;
   }
 
-  private static _setDomAttribute(element: HTMLElement, attribute: any, key: string) {
+  // TODO: require correct type of parameter 'key' (keyof HTMLElement and React special attribute key)
+  private static _setDomAttribute(element: HTMLElement, attribute: any, key: string): void {
     /**
      * reference: https://reactjs.org/docs/dom-elements.html
      */
@@ -118,6 +123,31 @@ export default class ReactDOM {
       //    otherwise
     } else {
       element.setAttribute(key, attribute);
+    }
+  }
+
+  public static _diffRender(vDom: VirtualNode): ReactElement {
+    // console.count('call _render count: ');
+    switch (typeof vDom) {
+      case 'string':
+      case 'number':
+      case 'boolean': {
+        return this._renderText(vDom);
+      }
+      case 'object':
+      default: {
+        const {tagName, attributes, children} = vDom;
+        switch (typeof tagName) {
+          case 'string': {
+            return this._renderHtmlTag(vDom);
+          }
+          case 'function':
+          case 'object':
+          default: {
+            return this._renderComponent(vDom);
+          }
+        }
+      }
     }
   }
 }
