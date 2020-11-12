@@ -1,7 +1,13 @@
 import {
-  VirtualNode, VirtualTextNode, VirtualHTMLDOM, VirtualComponentDOM,
-  ReactElement, ReactHTMLElement, ReactTextElement, ReactComponentElement,
-  create, setProps, unmount
+  create,
+  ReactComponentElement,
+  ReactElement,
+  setProps,
+  unmount,
+  VirtualComponentDOM,
+  VirtualHTMLDOM,
+  VirtualNode,
+  VirtualTextNode
 } from "ez-react";
 
 
@@ -19,7 +25,10 @@ export default class ReactDOM {
     const oldTrueDom = container.appendChild(emptyNode);
     const realDOM = this._diffRender(oldTrueDom, virtualDom);
     // console.timeEnd(recordRenderSpendTimeKey);
-    if (realDOM) container.appendChild(realDOM);
+    if (realDOM) {
+      container.innerHTML = null;
+      container.appendChild(realDOM);
+    }
   }
 
   // public static _directRender(vDom: VirtualNode): ReactElement {
@@ -83,34 +92,34 @@ export default class ReactDOM {
   // }
 
   // TODO: require correct type of parameter 'key' (keyof HTMLElement and React special attribute key)
-  public static _setDomAttribute(element: HTMLElement, key: string, attribute: any): void {
+  public static _setDomAttribute(element: HTMLElement, key: string, value: any): void {
     /**
      * reference: https://reactjs.org/docs/dom-elements.html
      */
     //    convert className to class
     if (key === 'className') {
-      element.setAttribute('class', attribute);
+      element.setAttribute('class', value);
       //    process style, for example: style={{width: 200, height: 300}}, should convert 200 to '200px'
       //    and set element.style
       //    process tag 'for'
     } else if (key === 'htmlFor') {
-      element.setAttribute('for', attribute);
+      element.setAttribute('for', value);
       //    process tag 'tabindex'
     } else if (key === 'tabIndex') {
-      element.setAttribute('tabindex', attribute);
+      element.setAttribute('tabindex', value);
     } else if (key === 'style') {
-      switch (typeof attribute) {
+      switch (typeof value) {
         case 'string': {
           // element.setAttribute('style', attribute);
           // use element.style.cssText but not element.setAttribute
           // because browser render engine will check style key
           // if style key is invalid, browser render engine will not set the style attribute
-          element.style.cssText = attribute;
+          element.style.cssText = value;
           break;
         }
         case 'object': {
-          Object.keys(attribute).forEach((styleName) => {
-            const rawStyleValue = attribute[styleName];
+          Object.keys(value).forEach((styleName) => {
+            const rawStyleValue = value[styleName];
             element.style[styleName] = typeof rawStyleValue === 'number' ? `${rawStyleValue}px` : rawStyleValue;
           });
           break;
@@ -122,18 +131,18 @@ export default class ReactDOM {
       //    process event name, convert onClick to onclick
     } else if (/^on[A-Z][A-Za-z]+$/.test(key)) {
       const htmlEventName = key.toLowerCase();
-      element[htmlEventName] = attribute;
+      element[htmlEventName] = value;
       //    otherwise
     } else {
-      element.setAttribute(key, attribute);
+      element.setAttribute(key, value);
     }
   }
 
-  public static _diffRender(oldTrueDom: ReactElement, newVirtualDom: VirtualNode): ReactElement {
+  public static _diffRender(oldTrueDom: any, newVirtualDom: VirtualNode): any {
     // console.count('call _render count: ');
-    console.log('_diffRender')
-    console.log('oldTrueDom', oldTrueDom)
-    console.log('newVirtualDom', newVirtualDom)
+    // console.log('_diffRender')
+    // console.log('oldTrueDom', oldTrueDom)
+    // console.log('newVirtualDom', newVirtualDom)
     switch (typeof newVirtualDom) {
       case 'string':
       case 'number':
@@ -150,7 +159,6 @@ export default class ReactDOM {
           case 'function':
           case 'object':
           default: {
-            // return this._renderComponent(newVirtualDom);
             return this._diffRenderComponent(oldTrueDom as ReactComponentElement<any, any>, newVirtualDom as VirtualComponentDOM)
           }
         }
@@ -158,66 +166,39 @@ export default class ReactDOM {
     }
   }
 
-  private static _diffRenderText(oldTrueDom: Node, newVirtualDom: VirtualTextNode): HTMLElement {
+  private static _diffRenderText(oldTrueDom: any, newVirtualDom: VirtualTextNode): Node {
     const newText = String(newVirtualDom);
-    let newTrueDom;
+    let newTrueDom = oldTrueDom;
     if (oldTrueDom?.nodeType === 3) {
       if (oldTrueDom.textContent !== newText) {
         oldTrueDom.textContent = newText
-        newTrueDom = oldTrueDom
       }
     } else {
       // first render or node type is not Text
-      const parentNode = oldTrueDom?.parentNode;
       newTrueDom = document.createTextNode(newText);
-      parentNode?.replaceChild(newTrueDom, oldTrueDom)
     }
     return newTrueDom;
   }
 
-  private static _diffRenderHTML(oldTrueDom: ReactElement, newVirtualDom: VirtualHTMLDOM): ReactElement {
+  private static _diffRenderHTML(oldTrueDom: any, newVirtualDom: VirtualHTMLDOM): ReactElement {
     const newHTMLTag = newVirtualDom.tagName;
-    let newTrueDom = oldTrueDom;
+    let newTrueDom;
 
     const isSameNodeType = this._isSameNodeType(oldTrueDom, newVirtualDom)
+    // console.log('this._isSameNodeType(oldTrueDom, newVirtualDom)', isSameNodeType)
     if (isSameNodeType) {
-      let oldChildKeyed = {}
-      let oldChildren = []
-
-      oldTrueDom?.childNodes?.forEach(child => {
-        newTrueDom.appendChild(child)
-        if (child['key']) {
-          oldChildKeyed[child['key']] = child
-        } else {
-          oldChildren.push(child)
-        }
-      })
-
-      newVirtualDom.children.forEach(newChild => {
-        const newChildKey = newChild['key']
-
-        let oldChild;
-        if (newChildKey && oldChildKeyed[newChildKey]) {
-          oldChild = oldChildKeyed[newChildKey]
-        } else {
-          // oldChildren may be empty, so oldChildren.shift() is null
-          oldChild = oldChildren.shift()
-        }
-
-        const diffChild = this._diffRender(oldChild, newChild);
-        oldTrueDom?.appendChild(diffChild)
-      });
-      oldTrueDom.parentNode.replaceChild(newTrueDom, oldTrueDom as Node);
+      // console.log('isSameNodeType is true, _diffChildren', oldTrueDom, newVirtualDom)
+      newTrueDom = this._diffChildren(oldTrueDom, newVirtualDom);
     } else {
+      // console.log('isSameNodeType is false', oldTrueDom, newVirtualDom)
       newTrueDom = document.createElement(newHTMLTag);
       newVirtualDom.children.forEach(newChild => {
         const diffChild = this._diffRender(null, newChild);
-        console.log('diffChild', diffChild)
         newTrueDom.appendChild(diffChild)
       });
     }
 
-    this._diffAttribute(oldTrueDom as HTMLElement, newVirtualDom, newTrueDom);
+    this._diffAttribute(newTrueDom as HTMLElement, newVirtualDom);
 
     return newTrueDom;
   }
@@ -225,44 +206,56 @@ export default class ReactDOM {
   private static _diffRenderComponent(oldTrueDom: ReactElement, newVirtualDom: VirtualComponentDOM): ReactElement {
     const oldInstance = oldTrueDom?._instance;
     const newClass = newVirtualDom.tagName;
-    console.log('oldInstance', oldInstance)
-    console.log('newClass', newClass)
-    console.log('newClass.constructor', newClass.constructor)
-    // console.log('oldInstance.constructor', oldInstance.constructor)
-    let instance = oldInstance;
+    let instance;
+    console.warn('newClass.isPrototypeOf(oldInstance)', newClass.isPrototypeOf(oldInstance))
+    console.warn('oldInstance', oldInstance)
+    console.warn('newClass', newClass)
 
-    console.log('newClass.isPrototypeOf(instance)', newClass.isPrototypeOf(oldInstance), instance)
-    if (newClass.isPrototypeOf(instance)) {
-      setProps(oldInstance, newVirtualDom.attributes)
+    const attributes = newVirtualDom.attributes ?? {}
+    console.log('newVirtualDom.children', newVirtualDom.children)
+    const children = newVirtualDom.children[0]
+    // if (newVirtualDom.children.length > 0 && Array.isArray(newVirtualDom.children[0])) {
+    //   newVirtualDom.children.forEach(child => {
+    //     if (Array.isArray(child)) {
+    //       children.push(...child)
+    //     } else {
+    //       children.push(child)
+    //     }
+    //   })
+    // } else {
+    //   children.push(...newVirtualDom.children)
+    // }
+    const props = {children, ...attributes}
+
+    if (newClass.isPrototypeOf(oldInstance)) {
+      instance = oldInstance;
     } else {
       if (oldInstance) {
         unmount(oldInstance)
       }
-      const newInstance = create(newClass as (Function | ObjectConstructor), newVirtualDom.attributes);
-      setProps(newInstance, newVirtualDom.attributes);
-      instance = newInstance;
+      instance = create(newClass as (Function | ObjectConstructor), newVirtualDom.attributes);
     }
-    console.log('instance', instance)
+    setProps(instance, props);
     return instance._node;
   }
 
-  private static _diffAttribute(oldTrueDom: ReactElement, newVirtualDom: VirtualHTMLDOM, newTrueDom: ReactElement) {
-    const newAttributes = newVirtualDom.attributes;
+  private static _diffAttribute(oldTrueDom: ReactElement, newVirtualDom: VirtualHTMLDOM) {
+    const oldAttributes = oldTrueDom?.attributes ?? {};
+    const newAttributes = newVirtualDom.attributes ?? {};
 
-    if (oldTrueDom) {
-      const oldAttributes = oldTrueDom.attributes;
-      for (const oldAttributeKey of Object.keys(oldAttributes)) {
-        if (!(oldAttributeKey in newAttributes)) {
-          this._setDomAttribute(newTrueDom as HTMLElement, oldAttributeKey, undefined);
-        }
+    for (const oldAttributeIndex of Object.keys(oldAttributes)) {
+      const oldAttribute = oldAttributes[oldAttributeIndex];
+      const oldAttributeKey = oldAttribute.name;
+      // const oldAttributeValue = oldAttribute.value;
+      if (!(oldAttributeKey in newAttributes)) {
+        this._setDomAttribute(oldTrueDom as HTMLElement, oldAttributeKey, undefined);
       }
     }
 
-    if (newAttributes) {
-      for (const newAttributeKey of Object.keys(newAttributes)) {
-        const newAttributeValue = newAttributes[newAttributeKey];
-        this._setDomAttribute(newTrueDom as HTMLElement, newAttributeKey, newAttributeValue);
-      }
+    const newAttributesKeys = Object.keys(newAttributes) ?? [];
+    for (const newAttributeKey of newAttributesKeys) {
+      const newAttributeValue = newAttributes[newAttributeKey];
+      this._setDomAttribute(oldTrueDom as HTMLElement, newAttributeKey, newAttributeValue);
     }
   }
 
@@ -278,12 +271,59 @@ export default class ReactDOM {
             case "string":
               return oldTrueDom.nodeName.toLowerCase() === newVirtualDom.tagName.toLowerCase();
             default:
-              return oldTrueDom && oldTrueDom?._instance?.constructor === newVirtualDom.tagName
+              return oldTrueDom?._instance?.constructor === newVirtualDom.tagName
           }
       }
     }
 
     return false;
   }
+
+  private static _diffChildren(oldTrueDom: any, newVirtualDom: VirtualHTMLDOM): ReactElement {
+    let oldChildKeyed = {}
+    let oldChildren = []
+
+    oldTrueDom.childNodes.forEach(child => {
+      if (child.key) {
+        oldChildKeyed[child.key] = child
+      } else {
+        oldChildren.push(child)
+      }
+    })
+
+    newVirtualDom.children.forEach(newChild => {
+      const newChildKey = newChild.key
+
+      let oldChild;
+      if (newChildKey && oldChildKeyed[newChildKey]) {
+        oldChild = oldChildKeyed[newChildKey]
+        delete oldChildKeyed[newChildKey]
+      } else {
+        // oldChildren may be empty, so oldChildren.shift() is null
+        oldChild = oldChildren.shift()
+      }
+
+      const diffChild = this._diffRender(oldChild, newChild);
+      if (diffChild !== oldChild) {
+        if (oldChild) {
+          console.warn('oldChild.parentNode', oldChild.parentNode, oldTrueDom, oldChild.parentNode === oldTrueDom)
+          oldChild.parentNode?.replaceChild(diffChild, oldChild);
+        } else {
+          oldTrueDom.appendChild(diffChild)
+        }
+      }
+    });
+
+    oldChildren.forEach(child => {
+      oldTrueDom.removeChild(child);
+    })
+    for (const childKey of Object.keys(oldChildKeyed)) {
+      oldTrueDom.removeChild(oldChildKeyed[childKey]);
+    }
+
+    return oldTrueDom;
+  }
+
+
 
 }
