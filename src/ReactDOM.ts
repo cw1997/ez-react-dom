@@ -193,8 +193,15 @@ export default class ReactDOM {
       // console.log('isSameNodeType is false', oldTrueDom, newVirtualDom)
       newTrueDom = document.createElement(newHTMLTag);
       newVirtualDom.children.forEach(newChild => {
-        const diffChild = this._diffRender(null, newChild);
-        newTrueDom.appendChild(diffChild)
+        if (Array.isArray(newChild)) {
+          newChild.forEach(subChild => {
+            const diffChild = this._diffRender(null, subChild);
+            newTrueDom.appendChild(diffChild)
+          })
+        } else {
+          const diffChild = this._diffRender(null, newChild);
+          newTrueDom.appendChild(diffChild)
+        }
       });
     }
 
