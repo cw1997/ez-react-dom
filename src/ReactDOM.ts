@@ -13,7 +13,6 @@ import {
 
 export default class ReactDOM {
   public static render(virtualDom: VirtualNode, container: HTMLElement, clearBeforeRender: boolean = true) {
-    // console.log('virtualDOM', vDom);
     //  if you want to erase container when call ReactDOM.render, please uncomment the next line.
     if (clearBeforeRender) {
       container.innerHTML = '';
@@ -139,10 +138,9 @@ export default class ReactDOM {
   }
 
   public static _diffRender(oldTrueDom: any, newVirtualDom: VirtualNode): any {
-    // console.count('call _render count: ');
     // console.log('_diffRender')
-    // console.log('oldTrueDom', oldTrueDom)
-    // console.log('newVirtualDom', newVirtualDom)
+    // console.log('   oldTrueDom', oldTrueDom)
+    // console.log('   newVirtualDom', newVirtualDom)
     switch (typeof newVirtualDom) {
       case 'string':
       case 'number':
@@ -185,12 +183,9 @@ export default class ReactDOM {
     let newTrueDom;
 
     const isSameNodeType = this._isSameNodeType(oldTrueDom, newVirtualDom)
-    // console.log('this._isSameNodeType(oldTrueDom, newVirtualDom)', isSameNodeType)
     if (isSameNodeType) {
-      // console.log('isSameNodeType is true, _diffChildren', oldTrueDom, newVirtualDom)
       newTrueDom = this._diffChildren(oldTrueDom, newVirtualDom);
     } else {
-      // console.log('isSameNodeType is false', oldTrueDom, newVirtualDom)
       newTrueDom = document.createElement(newHTMLTag);
       newVirtualDom.children.forEach(newChild => {
         if (Array.isArray(newChild)) {
@@ -214,31 +209,19 @@ export default class ReactDOM {
     const oldInstance = oldTrueDom?._instance;
     const newClass = newVirtualDom.tagName;
     let instance;
-    console.warn('newClass.isPrototypeOf(oldInstance)', newClass.isPrototypeOf(oldInstance))
-    console.warn('oldInstance', oldInstance)
-    console.warn('newClass', newClass)
 
     const attributes = newVirtualDom.attributes ?? {}
-    console.log('newVirtualDom.children', newVirtualDom.children)
-    const children = newVirtualDom.children[0]
-    // if (newVirtualDom.children.length > 0 && Array.isArray(newVirtualDom.children[0])) {
-    //   newVirtualDom.children.forEach(child => {
-    //     if (Array.isArray(child)) {
-    //       children.push(...child)
-    //     } else {
-    //       children.push(child)
-    //     }
-    //   })
-    // } else {
-    //   children.push(...newVirtualDom.children)
-    // }
+    const children = newVirtualDom.children
     const props = {children, ...attributes}
 
-    if (newClass.isPrototypeOf(oldInstance)) {
+    const isSameComponentType = oldInstance?.__proto__.constructor === newClass;
+    if (isSameComponentType) {
       instance = oldInstance;
     } else {
       if (oldInstance) {
         unmount(oldInstance)
+        const node = oldInstance._node;
+        node.parentNode.removeChild(node);
       }
       instance = create(newClass as (Function | ObjectConstructor), newVirtualDom.attributes);
     }
@@ -313,7 +296,6 @@ export default class ReactDOM {
       const diffChild = this._diffRender(oldChild, newChild);
       if (diffChild !== oldChild) {
         if (oldChild) {
-          console.warn('oldChild.parentNode', oldChild.parentNode, oldTrueDom, oldChild.parentNode === oldTrueDom)
           oldChild.parentNode?.replaceChild(diffChild, oldChild);
         } else {
           oldTrueDom.appendChild(diffChild)
