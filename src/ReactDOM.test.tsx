@@ -351,4 +351,31 @@ describe('ez-react-dom', () => {
     });
 
   });
+
+  describe('test diff', () => {
+    test('Counter', () => {
+      class Counter extends React.Component<{}, {count: number}> {
+        constructor() {
+          super();
+          this.state = {
+            count: 0,
+          }
+        }
+        add() {
+          const count = this.state.count + 1
+          this.setState({count})
+        }
+        render() {
+          return (
+              <div className="Counter">
+                {this.state.count}
+                <button onClick={() => this.add()}>add</button>
+              </div>
+          )
+        }
+      }
+      const expectedInnerHtml = '<div class="Counter">0<button>add</button></div>';
+      testReactDom(<Counter/>, expectedInnerHtml);
+    })
+  });
 });
