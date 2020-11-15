@@ -86,7 +86,7 @@ export default class ReactDOM {
       }
       case 'object':
       default: {
-        const {tagName, attributes, children} = newVirtualDom;
+        const {tagName} = newVirtualDom;
         switch (typeof tagName) {
           case 'string': {
             return this._diffRenderHTML(oldTrueDom, newVirtualDom as VirtualHTMLDOM);
@@ -132,11 +132,11 @@ export default class ReactDOM {
         if (Array.isArray(newChild)) {
           newChild.forEach(subChild => {
             const diffChild = this._diffRender(null, subChild);
-            newTrueDom.appendChild(diffChild)
+            newTrueDom.appendChild(diffChild as Node)
           })
         } else {
           const diffChild = this._diffRender(null, newChild);
-          newTrueDom.appendChild(diffChild)
+          newTrueDom.appendChild(diffChild as Node)
         }
       });
     }
@@ -241,9 +241,9 @@ export default class ReactDOM {
       const diffChild = this._diffRender(oldChild, newChild);
       if (diffChild !== oldChild) {
         if (oldChild) {
-          oldChild.parentNode?.replaceChild(diffChild, oldChild);
+          oldChild.parentNode?.replaceChild(diffChild as Node, oldChild);
         } else {
-          oldTrueDom.appendChild(diffChild)
+          oldTrueDom.appendChild(diffChild as Node)
         }
       } else {
       }
