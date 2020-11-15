@@ -1,13 +1,14 @@
 import {
   create,
-  ReactComponentElement,
+  ReactNode,
   ReactElement,
   setProps,
   unmount,
   VirtualComponentDOM,
   VirtualHTMLDOM,
   VirtualNode,
-  VirtualTextNode
+  VirtualTextNode,
+  FunctionComponent, FC
 } from "ez-react";
 
 
@@ -17,78 +18,14 @@ export default class ReactDOM {
     if (clearBeforeRender) {
       container.innerHTML = '';
     }
-    // const recordRenderSpendTimeKey = `${virtualDom} _render spent time: `;
-    // console.time(recordRenderSpendTimeKey);
-    // const realDOM = this._directRender(vDom);
     const emptyNode = document.createElement('div');
     const oldTrueDom = container.appendChild(emptyNode);
     const realDOM = this._diffRender(oldTrueDom, virtualDom);
-    // console.timeEnd(recordRenderSpendTimeKey);
     if (realDOM) {
       container.innerHTML = null;
       container.appendChild(realDOM);
     }
   }
-
-  // public static _directRender(vDom: VirtualNode): ReactElement {
-  //   // console.count('call _render count: ');
-  //   switch (typeof vDom) {
-  //     case 'string':
-  //     case 'number':
-  //     case 'boolean': {
-  //       return this._renderText(vDom);
-  //     }
-  //     case 'object':
-  //     default: {
-  //       const {tagName, attributes, children} = vDom;
-  //       switch (typeof tagName) {
-  //         case 'string': {
-  //           return this._renderHtmlTag(vDom);
-  //         }
-  //         case 'function':
-  //         case 'object':
-  //         default: {
-  //           return this._renderComponent(vDom);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  // private static _renderText(vDom: VirtualTextNode): ReactTextElement {
-  //   return document.createTextNode(String(vDom));
-  // }
-  //
-  // private static _renderHtmlTag(vDom: VirtualHTMLDOM): ReactHTMLElement {
-  //   const {tagName, attributes, children} = vDom;
-  //   const element = document.createElement(tagName as string);
-  //   if (attributes) {
-  //     Object.keys(attributes).forEach((key, index) => {
-  //       this._setDomAttribute(element, attributes[key], key);
-  //     });
-  //   }
-  //   children?.forEach((child) => {
-  //     if (Array.isArray(child)) {
-  //       child.forEach((subChild) => {
-  //         this.render(subChild, element, false);
-  //       });
-  //     } else {
-  //       this.render(child, element, false);
-  //     }
-  //   });
-  //   return element;
-  // }
-  //
-  // private static _renderComponent(vDom: VirtualComponentDOM): ReactComponentElement<any, any> {
-  //   const {tagName, attributes, children} = vDom;
-  //   const properties = {...attributes, children};
-  //   const componentInstance = create(tagName as Function, properties);
-  //   setProps(componentInstance, properties);
-  //   const componentRenderVirtualDOM = componentInstance.render();
-  //   const node = this._directRender(componentRenderVirtualDOM);
-  //   componentInstance.node = node;
-  //   return node;
-  // }
 
   // TODO: require correct type of parameter 'key' (keyof HTMLElement and React special attribute key)
   public static _setDomAttribute(element: HTMLElement, key: string, value: any): void {
@@ -132,15 +69,15 @@ export default class ReactDOM {
       const htmlEventName = key.toLowerCase();
       element[htmlEventName] = value;
       //    otherwise
+    } else if (key === 'key') {
+      element['key'] = value;
+      //    otherwise
     } else {
       element.setAttribute(key, value);
     }
   }
 
-  public static _diffRender(oldTrueDom: any, newVirtualDom: VirtualNode): any {
-    // console.log('_diffRender')
-    // console.log('   oldTrueDom', oldTrueDom)
-    // console.log('   newVirtualDom', newVirtualDom)
+  public static _diffRender(oldTrueDom: ReactNode, newVirtualDom: VirtualNode): ReactNode {
     switch (typeof newVirtualDom) {
       case 'string':
       case 'number':
@@ -157,7 +94,7 @@ export default class ReactDOM {
           case 'function':
           case 'object':
           default: {
-            return this._diffRenderComponent(oldTrueDom as ReactComponentElement<any, any>, newVirtualDom as VirtualComponentDOM)
+            return this._diffRenderComponent(oldTrueDom, newVirtualDom as VirtualComponentDOM)
           }
         }
       }
@@ -178,12 +115,16 @@ export default class ReactDOM {
     return newTrueDom;
   }
 
-  private static _diffRenderHTML(oldTrueDom: any, newVirtualDom: VirtualHTMLDOM): ReactElement {
+  private static _diffRenderHTML(oldTrueDom: ReactNode, newVirtualDom: VirtualHTMLDOM): ReactElement {
     const newHTMLTag = newVirtualDom.tagName;
     let newTrueDom;
 
     const isSameNodeType = this._isSameNodeType(oldTrueDom, newVirtualDom)
     if (isSameNodeType) {
+      // warning!! if newVirtualDom is from component render, children [0] is real children
+      if (Array.isArray(newVirtualDom.children?.[0])) {
+        newVirtualDom.children = newVirtualDom.children[0]
+      }
       newTrueDom = this._diffChildren(oldTrueDom, newVirtualDom);
     } else {
       newTrueDom = document.createElement(newHTMLTag);
@@ -205,16 +146,19 @@ export default class ReactDOM {
     return newTrueDom;
   }
 
-  private static _diffRenderComponent(oldTrueDom: ReactElement, newVirtualDom: VirtualComponentDOM): ReactElement {
+  private static _diffRenderComponent(oldTrueDom: ReactNode, newVirtualDom: VirtualComponentDOM): ReactElement {
     const oldInstance = oldTrueDom?._instance;
     const newClass = newVirtualDom.tagName;
-    let instance;
 
     const attributes = newVirtualDom.attributes ?? {}
     const children = newVirtualDom.children
     const props = {children, ...attributes}
 
-    const isSameComponentType = oldInstance?.__proto__.constructor === newClass;
+    const isSameClassComponentType = oldInstance?.__proto__.constructor === newClass;
+    const isSameFunctionComponentType = FunctionComponent.prototype.constructor === oldInstance?.__proto__.constructor
+    const isSameComponentType = isSameClassComponentType || isSameFunctionComponentType
+
+    let instance;
     if (isSameComponentType) {
       instance = oldInstance;
     } else {
@@ -223,7 +167,7 @@ export default class ReactDOM {
         const node = oldInstance._node;
         node.parentNode.removeChild(node);
       }
-      instance = create(newClass as (Function | ObjectConstructor), newVirtualDom.attributes);
+      instance = create(newClass as (FC<any> | ObjectConstructor), props);
     }
     setProps(instance, props);
     return instance._node;
@@ -249,7 +193,7 @@ export default class ReactDOM {
     }
   }
 
-  private static _isSameNodeType(oldTrueDom: ReactElement, newVirtualDom: VirtualNode): boolean {
+  private static _isSameNodeType(oldTrueDom: ReactNode, newVirtualDom: VirtualNode): boolean {
     if (oldTrueDom) {
       switch (typeof newVirtualDom) {
         case "string":
@@ -281,8 +225,8 @@ export default class ReactDOM {
       }
     })
 
-    newVirtualDom.children.forEach(newChild => {
-      const newChildKey = newChild.key
+    newVirtualDom.children.forEach((newChild: any) => {
+      const newChildKey = newChild.attributes?.key
 
       let oldChild;
       if (newChildKey && oldChildKeyed[newChildKey]) {
@@ -300,13 +244,14 @@ export default class ReactDOM {
         } else {
           oldTrueDom.appendChild(diffChild)
         }
+      } else {
       }
     });
 
     oldChildren.forEach(child => {
       oldTrueDom.removeChild(child);
     })
-    for (const childKey of Object.keys(oldChildKeyed)) {
+    for (const childKey in oldChildKeyed) {
       oldTrueDom.removeChild(oldChildKeyed[childKey]);
     }
 
