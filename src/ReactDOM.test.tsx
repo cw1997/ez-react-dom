@@ -377,5 +377,34 @@ describe('ez-react-dom', () => {
       const expectedInnerHtml = '<div class="Counter">0<button>add</button></div>';
       testReactDom(<Counter/>, expectedInnerHtml);
     })
+
+    test('WithKey', () => {
+      class WithKey extends React.Component<{}, {list: number[]}> {
+        constructor() {
+          super();
+          this.state = {
+            list: [0, 1, 2, 3],
+          }
+        }
+        add() {
+          const {list} = this.state
+          list.push(Math.random())
+          this.setState({list})
+        }
+        render() {
+          const {list} = this.state
+          return (
+              <div className="WithKey">
+                <ul>
+                  {list.map(v => <li key={v}>{v}</li>)}
+                </ul>
+                <button onClick={() => this.add()}>add</button>
+              </div>
+          )
+        }
+      }
+      const expectedInnerHtml = '<div class="WithKey"><ul><li>0</li><li>1</li><li>2</li><li>3</li></ul><button>add</button></div>';
+      testReactDom(<WithKey/>, expectedInnerHtml);
+    })
   });
 });
