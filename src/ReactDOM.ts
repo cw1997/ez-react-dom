@@ -1,9 +1,9 @@
 import {
   create,
-  ReactNode,
-  ReactElement,
   setProps,
   unmount,
+  ReactElement,
+  ReactNode,
   VirtualComponentDOM,
   VirtualHTMLDOM,
   VirtualNode,
@@ -101,7 +101,7 @@ export default class ReactDOM {
     }
   }
 
-  private static _diffRenderText(oldTrueDom: any, newVirtualDom: VirtualTextNode): Node {
+  private static _diffRenderText(oldTrueDom: ReactNode, newVirtualDom: VirtualTextNode): ReactNode {
     const newText = String(newVirtualDom);
     let newTrueDom = oldTrueDom;
     if (oldTrueDom?.nodeType === 3) {
@@ -115,7 +115,7 @@ export default class ReactDOM {
     return newTrueDom;
   }
 
-  private static _diffRenderHTML(oldTrueDom: ReactNode, newVirtualDom: VirtualHTMLDOM): ReactElement {
+  private static _diffRenderHTML(oldTrueDom: ReactNode, newVirtualDom: VirtualHTMLDOM): ReactNode {
     const newHTMLTag = newVirtualDom.tagName;
     let newTrueDom;
 
@@ -146,15 +146,17 @@ export default class ReactDOM {
     return newTrueDom;
   }
 
-  private static _diffRenderComponent(oldTrueDom: ReactNode, newVirtualDom: VirtualComponentDOM): ReactElement {
-    const oldInstance = oldTrueDom?._instance;
+  private static _diffRenderComponent(oldTrueDom: ReactElement | ReactNode, newVirtualDom: VirtualComponentDOM): ReactNode {
+    const oldInstance = (oldTrueDom as ReactElement)?._instance;
     const newClass = newVirtualDom.tagName;
 
     const attributes = newVirtualDom.attributes ?? {}
     const children = newVirtualDom.children
     const props = {children, ...attributes}
 
+    //@ts-ignore
     const isSameClassComponentType = oldInstance?.__proto__.constructor === newClass;
+    //@ts-ignore
     const isSameFunctionComponentType = FunctionComponent.prototype.constructor === oldInstance?.__proto__.constructor
     const isSameComponentType = isSameClassComponentType || isSameFunctionComponentType
 
@@ -193,7 +195,7 @@ export default class ReactDOM {
     }
   }
 
-  private static _isSameNodeType(oldTrueDom: ReactNode, newVirtualDom: VirtualNode): boolean {
+  private static _isSameNodeType(oldTrueDom: ReactElement | ReactNode, newVirtualDom: VirtualNode): boolean {
     if (oldTrueDom) {
       switch (typeof newVirtualDom) {
         case "string":
@@ -205,15 +207,14 @@ export default class ReactDOM {
             case "string":
               return oldTrueDom.nodeName.toLowerCase() === newVirtualDom.tagName.toLowerCase();
             default:
-              return oldTrueDom?._instance?.constructor === newVirtualDom.tagName
+              return (oldTrueDom as ReactElement)._instance?.constructor === newVirtualDom.tagName
           }
       }
     }
-
     return false;
   }
 
-  private static _diffChildren(oldTrueDom: any, newVirtualDom: VirtualHTMLDOM): ReactElement {
+  private static _diffChildren(oldTrueDom: any, newVirtualDom: VirtualHTMLDOM): ReactNode {
     let oldChildKeyed = {}
     let oldChildren = []
 
