@@ -1,14 +1,14 @@
 {
   "name": "ez-react-dom",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple implementation of react-dom",
   "main": "src/index.ts",
   "scripts": {
-    "postinstall": "npm link ez-react",
     "start": "webpack --watch",
     "test": "jest",
     "build": "webpack",
-    "deploy:local": "npm link"
+    "deploy:local": "npm link",
+    "dev:local": "npm link ez-react"
   },
   "repository": {
     "type": "git",
