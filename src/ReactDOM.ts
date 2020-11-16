@@ -68,9 +68,12 @@ export default class ReactDOM {
     } else if (/^on[A-Z][A-Za-z]+$/.test(key)) {
       const htmlEventName = key.toLowerCase();
       element[htmlEventName] = value;
-      //    otherwise
+      //    key for diff render
     } else if (key === 'key') {
       element['key'] = value;
+      //    value for form input
+    } else if (key === 'value') {
+      element['value'] = value;
       //    otherwise
     } else {
       element.setAttribute(key, value);
