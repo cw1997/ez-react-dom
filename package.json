@@ -1,6 +1,6 @@
 {
   "name": "ez-react-dom",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple implementation of react-dom",
   "main": "src/index.ts",
   "scripts": {
@@ -41,6 +41,6 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@cw1997/ez-react": "latest"
+    "@cw1997/ez-react": "^1.0.4"
   }
 }
