@@ -9,7 +9,7 @@ import {
   VirtualNode,
   VirtualTextNode,
   FunctionComponent, FC
-} from "ez-react";
+} from "@cw1997/ez-react";
 
 
 export default class ReactDOM {
@@ -123,11 +123,23 @@ export default class ReactDOM {
     let newTrueDom;
 
     const isSameNodeType = this._isSameNodeType(oldTrueDom, newVirtualDom)
-    if (isSameNodeType) {
-      // warning!! if newVirtualDom is from component render, children [0] is real children
-      if (Array.isArray(newVirtualDom.children?.[0])) {
-        newVirtualDom.children = newVirtualDom.children[0]
+
+    /**
+     * handle children in component
+     * child is array when the it is children of component props,
+     * like first child, second child, {props.children}, forth child and more
+     */
+    const newChildren = [];
+    newVirtualDom.children.forEach(child => {
+      if (Array.isArray(child)) {
+        newChildren.push(...child)
+      } else {
+        newChildren.push(child)
       }
+    })
+    newVirtualDom.children = newChildren
+
+    if (isSameNodeType) {
       newTrueDom = this._diffChildren(oldTrueDom, newVirtualDom);
     } else {
       newTrueDom = document.createElement(newHTMLTag);
