@@ -1,6 +1,6 @@
 {
   "name": "ez-react-dom",
-  "version": "1.0.3",
+  "version": "1.1.1",
   "description": "A simple implementation of react-dom",
   "main": "src/index.ts",
   "scripts": {
@@ -8,8 +8,7 @@
     "test": "jest",
     "build": "webpack",
     "deploy:local": "npm link",
-    "dev:local": "npm uninstall @cw1997/ez-react && npm link @cw1997/ez-react",
-    "prepublish": "npm install --save @cw1997/ez-react"
+    "dev:local": "npm uninstall @cw1997/ez-react && npm link && npm link @cw1997/ez-react"
   },
   "repository": {
     "type": "git",
@@ -41,6 +40,6 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@cw1997/ez-react": "^1.0.4"
+    "@cw1997/ez-react": "^1.1.1"
   }
 }
