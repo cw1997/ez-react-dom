@@ -74,6 +74,22 @@ export default class ReactDOM {
       //    value for form input
     } else if (key === 'value') {
       element['value'] = value;
+      //    ref, reference https://reactjs.org/docs/refs-and-the-dom.html
+    } else if (key === 'ref') {
+      switch (typeof value) {
+        case "object":
+          value.current = element;
+          break
+        case "function":
+          value(element);
+          break;
+        case "string":
+          console.warn('String Refs is deprecated, use ref by componentInstance.createRef() or callback function.' +
+          `Occurred in element: ${element}, key: ${key}, value: ${value}`);
+          break;
+        default:
+          console.warn(`UnSupport ref type. Occurred in element: ${element}, key: ${key}, value: ${value}`)
+      }
       //    otherwise
     } else {
       element.setAttribute(key, value);
